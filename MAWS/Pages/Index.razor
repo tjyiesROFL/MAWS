@@ -1,0 +1,115 @@
+﻿@page "/"
+@using MAWS.IntermediateData
+
+<AuthorizeView Roles=@ApplicationData.Administrator>
+    <Authorized>
+        <div class="card-deck">
+            <div class="card m-2" style="min-width: 18rem; max-width:30.5%">
+                <div class="card-header">
+                    <a href="Identity/Account/Manage">Welcome to MAWS, @context.User.Identity.Name</a>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@*<AuthorizeView Roles=@ApplicationData.HeadOfDiscipline>
+    <Authorized>
+        <div class="card-deck">
+            <div class="card m-3" style="min-width: 18rem; max-width:30.5%">
+                <div class="card-header">
+                    <a href="Identity/Account/Manage">Welcome to MAWS, @context.User.Identity.Name</a>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<AuthorizeView Roles=@ApplicationData.UnitCoordinator>
+    <Authorized>
+        <div class="card-deck">
+            <div class="card m-1" style="min-width: 15rem; max-width:25.5%">
+                <div class="card-header">
+                    <a href="Identity/Account/Manage">Welcome to MAWS, @context.User.Identity.Name</a>
+                </div>
+            </div>
+        </div>
+        <div class="card-deck">
+            <div class="card m-4" style="min-width: 10rem; max-width:15.5%">
+                <div class="card-body">
+                    Value to go here!
+                </div>
+                <div class="card-footer">
+                    <p>Teaching Hours</p>
+                </div>
+            </div>
+            <div class="card m-4" style="min-width: 11rem; max-width:15.5%">
+                <div class="card-body">
+                    Value to go here!
+                </div>
+                <div class="card-footer">
+                    <p>Supervision Hours</p>
+                </div>
+            </div>
+            <div class="card m-4" style="min-width: 11rem; max-width:15.5%">
+                <div class="card-body">
+                    Value to go here!
+                </div>
+                <div class="card-footer">
+                    <p>Research Hours</p>
+                </div>
+            </div>
+            <div class="card m-4" style="min-width: 11rem; max-width:15.5%">
+                <div class="card-body">
+                    Value to go here!
+                </div>
+                <div class="card-footer">
+                    <p>Other Hours</p>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<AuthorizeView Roles=@ApplicationData.AcademicStaff>
+    <Authorized>
+        <div class="card-deck">
+            <div class="card m-2" style="min-width: 18rem; max-width:30.5%">
+                <div class="card-header">
+                    <a href="Identity/Account/Manage">Welcome to MAWS, @context.User.Identity.Name</a>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<AuthorizeView Roles=@ApplicationData.ContractsAdministrator>
+    <Authorized>
+        <div class="card-deck">
+            <div class="card m-2" style="min-width: 18rem; max-width:30.5%">
+                <div class="card-header">
+                    <a href="Identity/Account/Manage">Welcome to MAWS, @context.User.Identity.Name</a>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>*@
+
+<AuthorizeView>
+    <NotAuthorized>
+        <div class="alert alert-info" role="alert">
+            <h3>You are not logged in.</h3>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private System.Security.Claims.ClaimsPrincipal CurrentUser;
+
+
+
+
+}

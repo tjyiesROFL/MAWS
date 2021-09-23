@@ -1,0 +1,289 @@
+﻿@page "/Compare"
+@using Microsoft.AspNetCore.Identity
+@using  MAWS.Models
+@using Plotly.Blazor
+@using Plotly.Blazor.Traces
+@using Plotly.Blazor.LayoutLib
+@using System.Diagnostics
+@using MAWS.IntermediateData
+@inject IJSRuntime JsRuntime
+
+@inject MAWS.Services.QueryWorkload queryTotalWorkload
+@inject MAWS.Services.QueryAcademicStaff queryAcademicStaff
+
+
+<h3 class="page-heading-murdoch">Compare Workload</h3>
+
+<div>
+    <AuthorizeView>
+        <Authorized>
+
+            @if (_staffList == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div id="compare-search-section">
+
+                    <h5>Add Staff for Comparison</h5> <br />
+                    <div class="container">
+                        <div class="row">
+                            <div class="col col-md-8">
+                                <table id="compare-academic-staff-table" class="display font-80">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Select</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var record in _staffList)
+                                        {
+                                            <tr>
+                                                <td>@record.FirstName @record.Surname</td>
+                                                <td>
+                                                    <a href="" @onclick="(() => SelectStaff(record))" @onclick:preventDefault>
+                                                        <i class="fa fa-plus" aria-hidden="true"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col col-md-4">
+                                <div class="card font-80">
+                                    <div class="card-header background-murdoch-text">
+                                        Selected staffs
+                                    </div>
+                                    <table class="display table table-borderless">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Remove</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var staff in @_selectedStaff)
+                                            {
+                                                <tr>
+
+                                                    <td> @staff.FirstName @staff.Surname</td>
+                                                    <td >
+                                                        <a class="murdoch-text" href="" @onclick="(() => RemoveItemFromCompareList(staff))" @onclick:preventDefault>
+                                                            <i class="fa fa-minus-circle" aria-hidden="true"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                    <div class="card-body list-group-item">
+                                        <a href="#" class="card-link" @onclick="(()=>ClearCompareList())" @onclick:preventDefault>Clear All</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                    <button class="btn btn-info" @onclick="() => AddData()">
+                        Compare
+                    </button> <br /> <hr />
+
+                </div>
+
+                <div id="compare-graph">
+                    <PlotlyChart Id="TestId" Config="@_configPlotly" Layout="@_layout" Data="@_dataListPlotly" @ref="@_chart" />
+                </div>
+                <span id="end-of-graph"></span>
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    System.Security.Claims.ClaimsPrincipal CurrentUser;
+    
+
+    private List<AcademicStaff> _staffList;
+
+    //private string _selectedStaff;
+    private List<AcademicStaff> _selectedStaff = new List<AcademicStaff>();
+
+
+    private PlotlyChart _chart;
+    Config _configPlotly = new Config
+    {
+        Responsive = true
+    };
+
+    Layout _layout = new Layout
+    {
+        Title = new Title
+        {
+            Text = "Workload Comparison"
+        },
+        BarMode = BarModeEnum.Stack,
+        Height = 500
+    };
+
+    List<ITrace> _dataListPlotly = new List<ITrace>
+{
+        new Bar
+        {
+            X = new List<object> {},
+            Y = new List<object> {},
+            Name = ""
+        }
+    };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _staffList = await queryAcademicStaff.GetStaffListAsync();
+
+        //initialise the graph with own workload hours
+        //_selectedStaff.Add(_staffList.FirstOrDefault());
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#compare-academic-staff-table");
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#compare-academic-staff-table");
+    }
+
+    protected void expandSearchTable()
+    {
+        JsRuntime.InvokeAsync<bool>("showElement", "#compare-search-section");
+    }
+
+    public void SelectStaff(AcademicStaff staff)
+    {
+        if (!_selectedStaff.Contains(staff))
+        {
+            _selectedStaff.Add(staff);
+        }
+    }
+
+    private void RemoveItemFromCompareList(AcademicStaff staff)
+    {
+        _selectedStaff.Remove(staff);
+    }
+
+    private void ClearCompareList()
+    {
+        _selectedStaff = new List<AcademicStaff>();
+    }
+
+    private async Task AddData()
+    {
+        if (!(_chart.Data.FirstOrDefault() is Bar bar)) return;
+        await ClearGraph();
+        var workloadPlotly = await SetupBarChart();
+        _chart.Data.AddRange(workloadPlotly);
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        await _chart.React();
+        stopwatch.Stop();
+        Console.WriteLine($"[PERF.] Update took {stopwatch.ElapsedMilliseconds}");
+        await JsRuntime.InvokeAsync<object>("showElement", "#compare-graph");
+        await JsRuntime.InvokeAsync<object>("scrollToId", "#end-of-graph");
+    }
+
+    private async Task<List<ITrace>> SetupBarChart()
+    {
+
+        List<object> staffNames = new List<object>();
+        List<object> teachingHours = new List<object>();
+        List<object> researchHours = new List<object>();
+        List<object> serviceHours = new List<object>();
+        List<object> supervisionHours = new List<object>();
+        List<object> miscTeachingHours = new List<object>();
+
+        var workloadList = await queryTotalWorkload.GetStaffTotalWorkload(_selectedStaff);
+
+        foreach (var workload in workloadList)
+        {
+
+            staffNames.Add($"{workload.GetStaffFirstName()} {workload.GetStaffSurname()}");
+            teachingHours.Add(workload.TeachingHours); //teaching
+            researchHours.Add(workload.ResearchHours); //research
+            serviceHours.Add(workload.ServiceHours); //service
+            supervisionHours.Add(workload.SupervisionHours); //supervision
+            miscTeachingHours.Add(workload.MiscTeachingHours); //misc
+
+        };
+
+        return new List<ITrace>
+        {
+                new Bar
+                {
+                    X = staffNames,
+                    Y =  teachingHours,
+                    Name = "Teaching",
+                    Marker  = new Plotly.Blazor.Traces.BarLib.Marker{
+                            Color =  "#CC0000"
+                    },
+                },
+                new Bar
+                {
+                    X = staffNames,
+                    Y = researchHours,
+                    Marker  = new Plotly.Blazor.Traces.BarLib.Marker{
+                        Color =  "#006565"
+                    },
+                    Name = "Research"
+                },
+                new Bar
+                {
+                    X = staffNames ,
+                    Y =  serviceHours,
+                    Marker  = new Plotly.Blazor.Traces.BarLib.Marker{
+                        Color =  "#1F1A19"
+                    },
+                    Name = "Service"
+                },
+                new Bar
+                {
+                    X = staffNames ,
+                    Y = supervisionHours ,
+                        Marker  = new Plotly.Blazor.Traces.BarLib.Marker{
+                        Color =  "#A84C00"
+                    },
+                    Name = "Supervision",
+
+                },
+                new Bar
+                {
+                    X = staffNames ,
+                    Y =miscTeachingHours ,
+                    Marker  = new Plotly.Blazor.Traces.BarLib.Marker{
+                        Color =  "#2A0000"
+                    },
+                    Name = "Misc. Teaching"
+                }
+            };
+    }
+
+    private async Task ClearGraph()
+    {
+        if (!(_chart.Data.FirstOrDefault() is Bar bar)) return;
+
+        bar.X.Clear();
+        bar.Y.Clear();
+
+        await _chart.React();
+    }
+
+}

@@ -1,0 +1,233 @@
+﻿@page "/Manage/UnitActivities"
+
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+@inject IDataAccessServices<IntermediateTeachingPattern> DataAccess
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+@inject MAWS.Services.QueryAcademicStaff queryAcademicStaff
+@inject MAWS.Services.QueryTeachingPatterns QTP
+
+<h3 class="page-heading-murdoch">Manage Teaching Activities</h3>
+
+<div>
+    <AuthorizeView Context="Auth">
+        @*https://github.com/chanan/BlazorStrap/issues/149#issuecomment-569862948*@
+        <Authorized>
+            @if (_teachingActivityData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <label class="btn btn-danger btn-lg active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" @onclick="ShowEditSection" checked> Assigned Activities
+                    </label>
+                    <label class="btn btn-danger btn-lg">
+                        <input type="radio" name="options" id="option2" autocomplete="off" @onclick="ShowNewEntrySection">
+                    </label>
+                </div>
+                <hr />
+                if (_currentSection == "EditSection")
+                {
+                    <div id="EditSection" class="">
+                        <table id="manage-academic-teachingActivity-table" class="display table">
+                            <thead>
+                                <tr>
+                                    <th>Unit Code</th>
+                                    <th>Year</th>
+                                    <th>Teaching Period</th>
+                                    <th>First Name</th>
+                                    <th>Surname</th>
+                                    <th>Activity Type</th>
+                                    <th>Total Hours</th>
+                                    <th>Contributing Workload Hours</th>
+                                    <th>Transfer Activity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in @_teachingActivityData)
+                                {
+                                    foreach (var entry in record.TeachingActivityAssignmentList)
+                                    {
+                                <tr>
+                                    <td>@entry.UnitCode</td>
+                                    <td>@entry.Year</td>
+                                    <td>@entry.TeachingPeriod</td>
+                                    <td>@record.FirstName</td>
+                                    <td>@record.Surname</td>
+                                    <td>@entry.Activity</td>
+                                    <td>@entry.ActivityHrs</td>
+                                    <td>@entry.WorkloadHrs</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm" @onclick="(() => OnClickEditDelete(record, entry))">
+                                            <i class=" fas fa-eraser"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (@_showEditModal)
+                    {
+                        <!-- This is the popup to delete or edit a user -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Edit User</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close"
+                                                @onclick="OnHideEditDeleteModal">
+                                            <span aria-hidden="true">X</span>
+                                        </button>
+                                    </div>
+                                    <!-- Edit form for the current user -->
+                                    <div class="modal-body">
+                                        <p>Staff Number</p>
+                                        <select class="form-control" @bind="@newStaff">
+                                            @foreach (var id in _staffListId)
+                                            {
+                                                <option value="@id">
+                                                    @id
+                                                </option>
+                                            }
+                                        </select>
+                                        <br />
+                                        <br />
+                                        <!-- Button to save the user -->
+                                        <button class="btn btn-primary"
+                                                @onclick="OnSaveEdit">
+                                            Save
+                                        </button>
+                                        <!-- Button to delete the forecast -->
+                                        <button class="btn btn-danger"
+                                                @onclick="OnDeleteTeachingActivity">
+                                            Delete
+                                        </button>
+                                        <br />
+                                        @*<span style="color:red">@strError</span>*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (@_currentSection == "NewEntrySection")
+                {
+                    <div id="NewEntrySection" class="initiallyHidden">
+
+                        <EditForm Model="@_newTeachingActivityEntry" OnValidSubmit="@OnSubmitCreateTeachingActivity">
+                            <DataAnnotationsValidator />
+                            <div class="col-12 row">
+                                <label class="col-2">Staff ID: </label>
+                                <InputSelect class="form-control col-3" @bind-Value="_newTeachingActivityEntry.AcademicStaffID">
+                                    <option selected>Staff ID</option>
+                                    @foreach (var id in @_staffListId)
+                                            {
+                                        <option value="@id">
+                                            @id
+                                        </option>
+                                            }
+                                </InputSelect>
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">newStaff: </label>
+                                <InputText class="form-control col-3" @bind-Value="newStaff" placeholder="newStaff" />
+                            </div>
+                            <br />
+                            <input type="submit" class="form-control col-1 btn btn-primary" value="Save" />
+                        </EditForm>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private List<AcademicStaff> _teachingActivityData;
+    private TeachingActivityAssignment _selectedTeachingActivityRow;
+    private IntermediateTeachingActivityAssignment _newTeachingActivityEntry = new IntermediateTeachingActivityAssignment();
+    private List<string> _staffListId;
+    private AcademicStaff _staff;
+    private string newStaff;
+
+    private string _currentSection = "EditSection"; // EditSection, NewEntrySection
+    private bool _showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTeachingActivityData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-teachingActivity-table");
+
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-teachingActivity-table");
+    }
+
+    private async Task LoadTeachingActivityData()
+    {
+        _teachingActivityData = QTP.GetActivitiesAsync();
+        _staffListId = await QTP.GetIdList();
+    }
+
+    private void OnClickEditDelete(AcademicStaff record, TeachingActivityAssignment teachingActivity)
+    {
+        _showEditModal = true;
+        _staff = record;
+        _selectedTeachingActivityRow = teachingActivity;
+    }
+
+    private void OnHideEditDeleteModal() { _showEditModal = false; }
+
+    private async Task OnSaveEdit() //----------------------------------------------------------------------------------------------------------------------
+    {
+        QTP.ReassignTeaching(_staff, _selectedTeachingActivityRow, newStaff);
+        OnHideEditDeleteModal();
+        await LoadTeachingActivityData();
+    }
+
+    private async Task OnDeleteTeachingActivity()
+    {
+
+    }
+
+    private async Task OnSubmitCreateTeachingActivity()
+    {
+
+    }
+
+    private async Task ShowEditSection()
+    {
+        _currentSection = "EditSection";
+        //await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-teachingActivity-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+
+    private async Task ShowNewEntrySection()
+    {
+        _currentSection = "NewEntrySection";
+        //JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-teachingActivity-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+}

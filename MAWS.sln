@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MAWS", "MAWS\MAWS.csproj", "{A6A37381-98F5-4C56-828C-17E3B752F7F8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MAWS.Tests", "MAWS.Tests\MAWS.Tests.csproj", "{0FE10352-D037-4461-B6B1-C389E791E3B2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A6A37381-98F5-4C56-828C-17E3B752F7F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6A37381-98F5-4C56-828C-17E3B752F7F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6A37381-98F5-4C56-828C-17E3B752F7F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6A37381-98F5-4C56-828C-17E3B752F7F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FE10352-D037-4461-B6B1-C389E791E3B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FE10352-D037-4461-B6B1-C389E791E3B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FE10352-D037-4461-B6B1-C389E791E3B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FE10352-D037-4461-B6B1-C389E791E3B2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F94C7DB7-F861-4B2F-B741-9D5AA8DB3EAF}
+	EndGlobalSection
+EndGlobal

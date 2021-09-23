@@ -1,0 +1,103 @@
+﻿@page "/View/Units"
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+@inject IDataAccessServices<IntermediateUnit> DataAccess
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+<h3 class="page-heading-murdoch">Units</h3>
+
+<div>
+    <AuthorizeView>
+        <Authorized>
+            @if (_unitData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <table id="view-units-table" class="table">
+                    <thead>
+                        <tr>
+                            <th>UnitCode</th>
+                            <th>UnitName</th>
+                            <th>Area</th>
+                            <th>PU_BaseHrsExtraFlag </th>
+                            <th>PU_OtherTeachingFlag </th>
+                            <th>ClientFlag </th>
+                            <th>ExamFlag </th>
+                            <th>LabFlag </th>
+                            <th>FieldworkFlag </th>
+                            <th>Tier </th>
+                            <th>UCMTierBaseHrs </th>
+                            <th>ProjectFlag </th>
+                            <th>CreditPoints </th>
+                            <th>CreditPointsRatio </th>
+                            <th>ActiveFlag </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in _unitData)
+                        {
+                        <tr>
+                            <td>@record.UnitCode</td>
+                            <td>@record.UnitName</td>
+                            <td>@record.Area</td>
+                            <td>@record.PU_BaseHrsExtraFlag</td>
+                            <td>@record.PU_OtherTeachingFlag</td>
+                            <td>@record.ClientFlag</td>
+                            <td>@record.ExamFlag</td>
+                            <td>@record.LabFlag</td>
+                            <td>@record.FieldworkFlag</td>
+                            <td>@record.Tier</td>
+                            <td>@record.UCMTierBaseHrs</td>
+                            <td>@record.ProjectFlag</td>
+                            <td>@record.CreditPoints</td>
+                            <td>@record.CreditPointsRatio</td>
+                            <td>@record.ActiveFlag</td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            <button class="btn btn-info">Export as CSV</button>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private System.Security.Claims.ClaimsPrincipal CurrentUser;
+
+
+
+    private List<IntermediateUnit> _unitData;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await LoadUnitData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#view-units-table");
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("DataTablesRemove", "#view-units-table");
+    }
+
+    private async Task LoadUnitData()
+    {
+        _unitData = await DataAccess.GetListAsync();
+    }
+}

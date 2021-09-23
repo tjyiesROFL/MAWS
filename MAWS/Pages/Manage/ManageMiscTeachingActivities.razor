@@ -1,0 +1,267 @@
+﻿@page "/Manage/MiscTeachingActivities"
+
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+
+@inject IDataAccessServices<IntermediateMiscTeachingActivity> DataAccess
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+
+<h3 class="page-heading-murdoch">Manage Misc Teaching Activity</h3>
+
+<div>
+    <AuthorizeView Context="Auth">
+        @*https://github.com/chanan/BlazorStrap/issues/149#issuecomment-569862948*@
+        <Authorized>
+            @if (@_miscTeachingActivityData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <label class="btn btn-danger btn-lg active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" @onclick="ShowEditSection" checked> Edit MiscTeachingActivity
+                    </label>
+                    <label class="btn btn-danger btn-lg">
+                        <input type="radio" name="options" id="option2" autocomplete="off" @onclick="ShowNewEntrySection"> Add New
+                    </label>
+                </div>
+                <hr />
+                if (_currentSection == "EditSection")
+                {
+                    <div id="EditSection" class="">
+                        <table id="manage-academic-miscTeachingActivity-table" class="display table">
+                            <thead>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <th>Surname</th>
+                                    <th>Year</th>
+                                    <th>Unit Code</th>
+                                    <th>Teaching Period </th>
+                                    <th>Activity Name </th>
+                                    <th>Hours </th>
+                                    <th>Comments</th>
+                                    <th>Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in @_miscTeachingActivityData)
+                                {
+                                    <tr>
+                                        <td>@record.FirstName</td>
+                                        <td>@record.Surname</td>
+                                        <td>@record.Year</td>
+                                        <td>@record.UnitCode</td>
+                                        <td>@record.TeachingPeriod</td>
+                                        <td>@record.MiscName</td>
+                                        <td>@record.Hours</td>
+                                        <td>@record.Comments</td>
+                                        <td>
+                                            <button class="btn btn-success btn-sm" @onclick="(() => OnClickEditDelete(record))">
+                                                <i class=" fas fa-eraser"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (@_showEditModal)
+                    {
+                        <!-- This is the popup to delete or edit a user -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Edit User</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close"
+                                                @onclick="OnHideEditDeleteModal">
+                                            <span aria-hidden="true">X</span>
+                                        </button>
+                                    </div>
+                                    <!-- Edit form for the current user -->
+                                    <div class="modal-body">
+                                        <p>Activity Title</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedMiscTeachingActivityRow.MiscName @bind="_selectedMiscTeachingActivityRow.MiscName" />
+                                        <br />
+                                        <p>Year</p>
+                                        <input class="form-control" type="number" placeholder=@_selectedMiscTeachingActivityRow.Year @bind="_selectedMiscTeachingActivityRow.Year" />
+                                        <br />
+                                        <p>Unit Code</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedMiscTeachingActivityRow.UnitCode @bind="_selectedMiscTeachingActivityRow.UnitCode " />
+                                        <br />
+                                        <p>Teaching Period</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedMiscTeachingActivityRow.TeachingPeriod @bind="_selectedMiscTeachingActivityRow.TeachingPeriod" />
+                                        <br />
+                                        <p>Hours</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedMiscTeachingActivityRow.Hours @bind="_selectedMiscTeachingActivityRow.Hours" />
+                                        <br />
+                                        <p>Comments</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedMiscTeachingActivityRow.Comments @bind="_selectedMiscTeachingActivityRow.Comments" />
+                                        <br />
+                                        <br />
+                                        <!-- Button to save the user -->
+                                        <button class="btn btn-primary"
+                                                @onclick="OnSaveEdit">
+                                            Save
+                                        </button>
+                                        <!-- Button to delete the forecast -->
+                                        <button class="btn btn-danger"
+                                                @onclick="OnDeleteMiscTeachingActivity">
+                                            Delete
+                                        </button>
+                                        <br />
+                                        @*<span style="color:red">@strError</span>*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (@_currentSection == "NewEntrySection")
+                {
+                    <div id="NewEntrySection" class="initiallyHidden">
+
+                        <EditForm Model="@_newMiscTeachingActivityEntry" OnValidSubmit="@OnSubmitCreateMiscTeachingActivity">
+                            <DataAnnotationsValidator />
+                            <div class="col-12 row">
+                                <label class="col-2">Staff ID: </label>
+                                <InputSelect class="form-control col-3" @bind-Value="_newMiscTeachingActivityEntry.AcademicStaffID">
+                                    <option selected>Staff ID</option>
+                                    @foreach (var id in @_staffListId)
+                                            {
+                                        <option value="@id">
+                                            @id
+                                        </option>
+                                            }
+                                </InputSelect>
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Activity Name: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newMiscTeachingActivityEntry.MiscName" placeholder=@_newMiscTeachingActivityEntry.MiscName />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Year: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newMiscTeachingActivityEntry.Year" placeholder=@_newMiscTeachingActivityEntry.Year />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">UnitCode: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newMiscTeachingActivityEntry.UnitCode" placeholder=@_newMiscTeachingActivityEntry.UnitCode />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Teaching Period: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newMiscTeachingActivityEntry.TeachingPeriod" placeholder=@_newMiscTeachingActivityEntry.TeachingPeriod />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Hours: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newMiscTeachingActivityEntry.Hours" placeholder=@_newMiscTeachingActivityEntry.Hours />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Comments: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newMiscTeachingActivityEntry.Comments" placeholder=@_newMiscTeachingActivityEntry.Comments />
+                            </div>
+                            <br />
+                            <input type="submit" class="form-control col-1 btn btn-primary" value="Save" />
+                        </EditForm>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private List<IntermediateMiscTeachingActivity> _miscTeachingActivityData;
+    private IntermediateMiscTeachingActivity _selectedMiscTeachingActivityRow;
+    private IntermediateMiscTeachingActivity _newMiscTeachingActivityEntry = new IntermediateMiscTeachingActivity();
+    private List<string> _staffListId;
+
+    private string _currentSection = "EditSection"; // EditSection, NewEntrySection
+    private bool _showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMiscTeachingActivityData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-miscTeachingActivity-table");
+
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-miscTeachingActivity-table");
+    }
+
+    private async Task LoadMiscTeachingActivityData()
+    {
+        _miscTeachingActivityData = await DataAccess.GetListAsync();
+        _staffListId = await DataAccess.GetIdListAsync();
+    }
+
+    private void OnClickEditDelete(IntermediateMiscTeachingActivity miscTeachingActivity)
+    {
+        _selectedMiscTeachingActivityRow = miscTeachingActivity;
+        _showEditModal = true;
+    }
+
+    private void OnHideEditDeleteModal() { _showEditModal = false; }
+
+    private async Task OnSaveEdit()
+    {
+        await DataAccess.AddAsync(_selectedMiscTeachingActivityRow);
+        OnHideEditDeleteModal();
+        await LoadMiscTeachingActivityData();
+    }
+
+    private async Task OnDeleteMiscTeachingActivity()
+    {
+        //maybe show confirm dialog/modal? then remove there
+        await DataAccess.RemoveAsync(_selectedMiscTeachingActivityRow);
+        OnHideEditDeleteModal();
+
+        //breaks on updatepage after delete
+        //await LoadMiscTeachingActivityData();
+        //_miscTeachingActivityData.Remove(_selectedMiscTeachingActivityRow);
+    }
+
+    private async Task OnSubmitCreateMiscTeachingActivity()
+    {
+        await DataAccess.AddAsync(_newMiscTeachingActivityEntry);
+        await LoadMiscTeachingActivityData();
+    }
+
+    private async Task ShowEditSection()
+    {
+        _currentSection = "EditSection";
+        //await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-miscTeachingActivity-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+
+    private async Task ShowNewEntrySection()
+    {
+        _currentSection = "NewEntrySection";
+        //JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-miscTeachingActivity-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+}

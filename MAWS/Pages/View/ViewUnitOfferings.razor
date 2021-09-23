@@ -1,0 +1,88 @@
+﻿@page "/View/UnitOfferings"
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+@inject IDataAccessServices<IntermediateUnitOffering> DataAccess
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+
+<h3 class="page-heading-murdoch">Unit Offerings</h3>
+
+<div>
+    <AuthorizeView>
+        <Authorized>
+            @if (_unitOfferingData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <table id="view-unit-offerings-table" class="display table">
+                    <thead>
+                        <tr>
+                            <th>Unit Code</th>
+                            <th>Year</th>
+                            <th>Teaching Period </th>
+                            <th>Mode </th>
+                            <th>Location </th>
+                            <th>Offering Type </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in _unitOfferingData)
+                        {
+                            <tr>
+                                <td>@record.UnitCode</td>
+                                <td>@record.Year</td>
+                                <td>@record.TeachingPeriod</td>
+                                <td>@record.Mode</td>
+                                <td>@record.Location</td>
+                                <td>@record.OfferingType</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            <button class="btn btn-info">Export as CSV</button>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+
+    List<IdentityUser> ColUsers = new List<IdentityUser>();
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    System.Security.Claims.ClaimsPrincipal CurrentUser;
+
+
+
+    private List<IntermediateUnitOffering> _unitOfferingData;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUnitOfferingData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#view-unit-offerings-table");
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("DataTablesRemove", "#view-unit-offerings-table");
+    }
+
+    private async Task LoadUnitOfferingData()
+    {
+        _unitOfferingData = await DataAccess.GetListAsync();
+    }
+
+}

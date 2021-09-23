@@ -1,0 +1,258 @@
+﻿@page "/Manage/AcademicResearch"
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+
+@inject IDataAccessServices<IntermediateResearch> DataAccess
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+@inject MAWS.Services.QueryAcademicStaff queryAcademicStaff
+
+<h3 class="page-heading-murdoch">Manage Academic Research</h3>
+
+<div>
+    <AuthorizeView Context="Auth">
+        @*https://github.com/chanan/BlazorStrap/issues/149#issuecomment-569862948*@
+        <Authorized>
+            @if (@_researchData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <label class="btn btn-danger btn-lg active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" @onclick="ShowEditSection" checked> Edit Research
+                    </label>
+                    <label class="btn btn-danger btn-lg">
+                        <input type="radio" name="options" id="option2" autocomplete="off" @onclick="ShowNewEntrySection"> Add New
+                    </label>
+                </div>
+                <hr />
+                if (_currentSection == "EditSection")
+                {
+                    <div id="EditSection" class="">
+                        <table id="manage-academic-research-table" class="display table">
+                            <thead>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <th>Surname</th>
+                                    <th>Year</th>
+                                    <th>Research %</th>
+                                    <th>ECR %</th>
+                                    <th>Income %</th>
+                                    <th>Completions %</th>
+                                    <th>Publications %</th>
+                                    <th>RCI %</th>
+                                    <th>HOD Discretion %</th>
+                                    <th>Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in @_researchData)
+                                {
+
+                                    <tr>
+                                        <td>@record.FirstName</td>
+                                        <td>@record.Surname</td>
+                                        <td>@record.Year</td>
+                                        <td>@record.Percentage</td>
+                                        <td>@record.ECR_Pc</td>
+                                        <td>@record.Income_Pc</td>
+                                        <td>@record.Completions_Pc</td>
+                                        <td>@record.Pubs_Pc</td>
+                                        <td>@record.RCI_Pc</td>
+                                        <td>@record.Discretionary_Pc</td>
+                                        <td>
+                                            <button class="btn btn-success btn-sm" @onclick="(() => OnClickEditDelete(record))">
+                                                <i class=" fas fa-eraser"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (@_showEditModal)
+                    {
+                        <!-- This is the popup to delete or edit a user -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Edit User</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close"
+                                                @onclick="OnHideEditDeleteModal">
+                                            <span aria-hidden="true">X</span>
+                                        </button>
+                                    </div>
+                                    <!-- Edit form for the current user -->
+                                    <div class="modal-body">
+                                        <p>ECR_Pc</p>
+                                        <input class="form-control" type="number" placeholder=@_selectedResearchRow.ECR_Pc @bind="_selectedResearchRow.ECR_Pc" />
+                                        <br />
+                                        <p>Income_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedResearchRow.Income_Pc @bind="_selectedResearchRow.Income_Pc " />
+                                        <br />
+                                        <p>Completions_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedResearchRow.Completions_Pc @bind="_selectedResearchRow.Completions_Pc" />
+                                        <br />
+                                        <br />
+                                        <!-- Button to save the user -->
+                                        <button class="btn btn-primary"
+                                                @onclick="OnSaveEdit">
+                                            Save
+                                        </button>
+                                        <!-- Button to delete the forecast -->
+                                        <button class="btn btn-danger"
+                                                @onclick="OnDeleteResearch">
+                                            Delete
+                                        </button>
+                                        <br />
+                                        @*<span style="color:red">@strError</span>*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (@_currentSection == "NewEntrySection")
+                {
+                    <div id="NewEntrySection" class="initiallyHidden">
+
+                        <EditForm Model="@_newResearchEntry" OnValidSubmit="@OnSubmitCreateResearch">
+                            <DataAnnotationsValidator />
+                            <div class="col-12 row">
+                                <label class="col-2">Staff ID: </label>
+                                <InputSelect class="form-control col-3" @bind-Value="_newResearchEntry.AcademicStaffID">
+                                    <option selected>Staff ID</option>
+                                    @foreach (var id in @_staffListId)
+                                            {
+                                        <option value="@id">
+                                            @id
+                                        </option>
+                                            }
+                                </InputSelect>
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Completions_Pc: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newResearchEntry.Completions_Pc" placeholder="Completions_Pc" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Discretionary_Pc: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newResearchEntry.Discretionary_Pc" placeholder="Discretionary_Pc" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Fifteen_Pc: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newResearchEntry.Fifteen_Pc" placeholder="Fifteen_Pc" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Pubs_Pc: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newResearchEntry.Pubs_Pc" placeholder="Pubs_Pc" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Discretionary_Comments: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newResearchEntry.Discretionary_Comments" placeholder="Discretionary_Comments" />
+                            </div>
+                            <br />
+                            <input type="submit" class="form-control col-1 btn btn-primary" value="Save" />
+                        </EditForm>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private List<IntermediateResearch> _researchData;
+    private IntermediateResearch _selectedResearchRow;
+    private IntermediateResearch _newResearchEntry = new IntermediateResearch();
+    private List<string> _staffListId;
+
+    private string _currentSection = "EditSection"; // EditSection, NewEntrySection
+    private bool _showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadResearchData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-research-table");
+
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-research-table");
+    }
+
+    private async Task LoadResearchData()
+    {
+        _researchData = await DataAccess.GetListAsync();
+        _staffListId = await DataAccess.GetIdListAsync();
+    }
+
+    private void OnClickEditDelete(IntermediateResearch research)
+    {
+        _selectedResearchRow = research;
+        _showEditModal = true;
+    }
+
+    private void OnHideEditDeleteModal() { _showEditModal = false; }
+
+    private async Task OnSaveEdit()
+    {
+        await DataAccess.AddAsync(_selectedResearchRow);
+        OnHideEditDeleteModal();
+        await LoadResearchData();
+    }
+
+    private async Task OnDeleteResearch()
+    {
+        //maybe show confirm dialog/modal? then remove there
+        await DataAccess.RemoveAsync(_selectedResearchRow);
+        OnHideEditDeleteModal();
+
+        //breaks on updatepage after delete
+        //await LoadResearchData();
+        //_researchData.Remove(_selectedResearchRow);
+    }
+
+    private async Task OnSubmitCreateResearch()
+    {
+        await DataAccess.AddAsync(_newResearchEntry);
+        await LoadResearchData();
+    }
+
+    private async Task ShowEditSection()
+    {
+        _currentSection = "EditSection";
+        //await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-research-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+
+    private async Task ShowNewEntrySection()
+    {
+        _currentSection = "NewEntrySection";
+        //JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-research-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+}

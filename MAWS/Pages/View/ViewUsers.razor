@@ -1,0 +1,84 @@
+﻿@page "/View/Users"
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+@inject MAWS.Services.QueryUsers queryUsers
+
+<h3 class="page-heading-murdoch">View Users</h3>
+
+<div>
+    <AuthorizeView>
+        <Authorized>
+            @if (ApplicationUserList == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <table id="view-users-table" class="display table">
+                    <thead>
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>User Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in ApplicationUserList)
+                        {
+                            <tr>
+                                <td>@user.FullName</td>
+                                <td>@user.Email</td>
+                                <td>@user.UserName</td>
+                                <td>@user.RoleTitle</td>                            
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <p>You're not loggged in.</p>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+
+    //-------------------INFORMATION RELATING TO CURRENT USER
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private System.Security.Claims.ClaimsPrincipal CurrentUser;
+
+    
+
+    //------------------Initialised list of currently existing Users
+    private List<ApplicationUser> ApplicationUserList;
+    private List<string> CreateStaffIDOptions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CurrentUser = (await authenticationStateTask).User;
+    }
+
+    protected override void OnInitialized()
+    {
+        ApplicationUserList = UserManager.Users.ToList();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#view-users-table");
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("DataTablesRemove", "#view-users-table");
+    }
+
+}

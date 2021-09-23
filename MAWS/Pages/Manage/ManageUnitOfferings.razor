@@ -1,0 +1,290 @@
+﻿@page "/Manage/UnitOfferings"
+
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+
+@inject IDataAccessServices<IntermediateUnitOffering> DataAccess
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+
+
+<h3 class="page-heading-murdoch">Manage Unit Offerings</h3>
+
+<div>
+    <AuthorizeView Context="Auth">
+        @*https://github.com/chanan/BlazorStrap/issues/149#issuecomment-569862948*@
+        <Authorized>
+            @if (@_unitOfferingData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <label class="btn btn-danger btn-lg active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" @onclick="ShowEditSection" checked> Edit Unit Offering
+                    </label>
+                    <label class="btn btn-danger btn-lg">
+                        <input type="radio" name="options" id="option2" autocomplete="off" @onclick="ShowNewEntrySection"> Add New
+                    </label>
+                </div>
+                <hr />
+                if (_currentSection == "EditSection")
+                {
+                    <div id="EditSection" class="">
+                        <table id="manage-academic-unitOffering-table" class="display table">
+                            <thead>
+                                <tr>
+                                    <th>Unit Code</th>
+                                    <th>Year</th>
+                                    <th>Teaching Period </th>
+                                    <th>Mode </th>
+                                    <th>Location </th>
+                                    <th>OUAE Flag </th>
+                                    <th>WOCT Flag </th>
+                                    <th>SGT Flag </th>
+                                    <th>Offering Type </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in @_unitOfferingData)
+                                {
+
+                                <tr>
+                                    <td>@record.UnitCode</td>
+                                    <td>@record.Year</td>
+                                    <td>@record.TeachingPeriod</td>
+                                    <td>@record.Mode</td>
+                                    <td>@record.Location</td>
+                                    <td>@record.OUAE_Flag</td>
+                                    <td>@record.WOCT_Flag</td>
+                                    <td>@record.SGT_Flag</td>
+                                    <td>@record.OfferingType</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm" @onclick="(() => OnClickEditDelete(record))">
+                                            <i class=" fas fa-eraser"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (@_showEditModal)
+                    {
+                        <!-- This is the popup to delete or edit a user -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Edit User</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close"
+                                                @onclick="OnHideEditDeleteModal">
+                                            <span aria-hidden="true">X</span>
+                                        </button>
+                                    </div>
+                                    <!-- Edit form for the current user -->
+                                    <div class="modal-body">
+                                        <p>Unit Code</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedUnitOfferingRow.UnitCode @bind="_selectedUnitOfferingRow.UnitCode" />
+                                        <br />
+                                        <p>Year</p>
+                                        <input class="form-control" type="number" placeholder=@_selectedUnitOfferingRow.Year @bind="_selectedUnitOfferingRow.Year" />
+                                        <br />
+                                        <p>Teaching Period</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedUnitOfferingRow.TeachingPeriod @bind="_selectedUnitOfferingRow.TeachingPeriod" />
+                                        <br />
+                                        <p>Location</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedUnitOfferingRow.Location @bind="_selectedUnitOfferingRow.Location" />
+                                        <br />
+                                        <p>Mode</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedUnitOfferingRow.Mode @bind="_selectedUnitOfferingRow.Mode " />
+                                        <br />
+                                        <p>OUAE Flag</p>
+                                        <input class="form-control" type="checkbox" placeholder=@_selectedUnitOfferingRow.OUAE_Flag @bind="_selectedUnitOfferingRow.OUAE_Flag" />
+                                        <br />
+                                        <p>WOCT Flag</p>
+                                        <input class="form-control" type="checkbox" placeholder=@_selectedUnitOfferingRow.WOCT_Flag @bind="_selectedUnitOfferingRow.WOCT_Flag" />
+                                        <br />
+                                        <p>SGT Flag</p>
+                                        <input class="form-control" type="checkbox" placeholder=@_selectedUnitOfferingRow.SGT_Flag @bind="_selectedUnitOfferingRow.SGT_Flag " />
+                                        <br />
+                                        <p>Offering Type</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedUnitOfferingRow.OfferingType @bind="_selectedUnitOfferingRow.OfferingType" />
+                                        <br />
+                                        <p>Active Flag</p>
+                                        <input class="form-control" type="checkbox" placeholder=@_selectedUnitOfferingRow.ActiveFlag @bind="_selectedUnitOfferingRow.ActiveFlag" />
+                                        <br />
+                                        <br />
+                                        <!-- Button to save the user -->
+                                        <button class="btn btn-primary"
+                                                @onclick="OnSaveEdit">
+                                            Save
+                                        </button>
+                                        <!-- Button to delete the forecast -->
+                                        <button class="btn btn-danger"
+                                                @onclick="OnDeleteUnitOffering">
+                                            Delete
+                                        </button>
+                                        <br />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (@_currentSection == "NewEntrySection")
+                {
+                    <div id="NewEntrySection" class="initiallyHidden">
+
+                        <EditForm Model="@_newUnitOfferingEntry" OnValidSubmit="@OnSubmitCreateUnitOffering">
+                            <DataAnnotationsValidator />
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">UnitOfferingCode: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newUnitOfferingEntry.UnitCode" placeholder="UnitCode" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Year: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newUnitOfferingEntry.Year" placeholder="Year" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">TeachingPeriod: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newUnitOfferingEntry.TeachingPeriod" placeholder="TeachingPeriod" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Location: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newUnitOfferingEntry.Location" placeholder="Location" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Mode: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newUnitOfferingEntry.Mode" placeholder="Mode" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">OUAE_Flag: </label>
+                                <InputCheckbox class="form-control col-3" @bind-Value="_newUnitOfferingEntry.OUAE_Flag" placeholder="OUAE_Flag" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">WOCT_Flag: </label>
+                                <InputCheckbox class="form-control col-3" @bind-Value="_newUnitOfferingEntry.WOCT_Flag" placeholder="WOCT_Flag" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">SGT_Flag: </label>
+                                <InputCheckbox class="form-control col-3" @bind-Value="_newUnitOfferingEntry.SGT_Flag" placeholder="SGT_Flag" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">OfferingType: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newUnitOfferingEntry.OfferingType" placeholder="OfferingType" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">ActiveFlag: </label>
+                                <InputCheckbox class="form-control col-3" @bind-Value="_newUnitOfferingEntry.ActiveFlag" placeholder="ActiveFlag" />
+                            </div>
+                            <br />
+                            <input type="submit" class="form-control col-1 btn btn-primary" value="Save" />
+                        </EditForm>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private List<IntermediateUnitOffering> _unitOfferingData;
+    private IntermediateUnitOffering _selectedUnitOfferingRow;
+    private IntermediateUnitOffering _newUnitOfferingEntry = new IntermediateUnitOffering();
+    private List<string> _staffListId;
+
+    private string _currentSection = "EditSection"; // EditSection, NewEntrySection
+    private bool _showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUnitOfferingData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-unitOffering-table");
+
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-unitOffering-table");
+    }
+
+    private async Task LoadUnitOfferingData()
+    {
+        _unitOfferingData = await DataAccess.GetListAsync();
+        _staffListId = await DataAccess.GetIdListAsync();
+    }
+
+    private void OnClickEditDelete(IntermediateUnitOffering unitOffering)
+    {
+        _selectedUnitOfferingRow = unitOffering;
+        _showEditModal = true;
+    }
+
+    private void OnHideEditDeleteModal() { _showEditModal = false; }
+
+    private async Task OnSaveEdit()
+    {
+        await DataAccess.AddAsync(_selectedUnitOfferingRow);
+        OnHideEditDeleteModal();
+        await LoadUnitOfferingData();
+    }
+
+    private async Task OnDeleteUnitOffering()
+    {
+        //maybe show confirm dialog/modal? then remove there
+        await DataAccess.RemoveAsync(_selectedUnitOfferingRow);
+        OnHideEditDeleteModal();
+
+        //breaks on updatepage after delete
+        //await LoadUnitOfferingData();
+        //_unitOfferingData.Remove(_selectedUnitOfferingRow);
+    }
+
+    private async Task OnSubmitCreateUnitOffering()
+    {
+        await DataAccess.AddAsync(_newUnitOfferingEntry);
+        await LoadUnitOfferingData();
+    }
+
+    private async Task ShowEditSection()
+    {
+        _currentSection = "EditSection";
+        //await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-unitOffering-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+
+    private async Task ShowNewEntrySection()
+    {
+        _currentSection = "NewEntrySection";
+        //JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-unitOffering-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+}

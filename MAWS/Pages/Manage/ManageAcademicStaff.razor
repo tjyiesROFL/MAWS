@@ -1,0 +1,321 @@
+﻿@page "/Manage/AcademicStaff"
+
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+
+@inject IDataAccessServices<IntermediateAcademicStaff> DataAccess
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+<h3 class="page-heading-murdoch">Manage Academic Staff</h3>
+
+<div>
+    <AuthorizeView Context="Auth">
+        @*https://github.com/chanan/BlazorStrap/issues/149#issuecomment-569862948*@
+        <Authorized>
+            @if (@_academicStaffData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <label class="btn btn-danger btn-lg active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" @onclick="ShowEditSection" checked> Edit AcademicStaff
+                    </label>
+                    <label class="btn btn-danger btn-lg">
+                        <input type="radio" name="options" id="option2" autocomplete="off" @onclick="ShowNewEntrySection"> Add New
+                    </label>
+                </div>
+                <hr />
+                if (_currentSection == "EditSection")
+                {
+                    <div id="EditSection" class="">
+                        <table id="manage-academic-academicStaff-table" class="display table">
+                            <thead>
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>Surname</th>
+                                    <th>Employee Type</th>
+                                    <th>Area </th>
+                                    <th>Class Code</th>
+                                    <th>Class Name</th>
+                                    <th>Full Time Base Hours</th>
+                                    <th>Work Fraction</th>
+                                    <th>Employee Status</th>
+                                    <th>Contract Expiry Date</th>
+                                    <th>Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in @_academicStaffData)
+                                {
+
+                                <tr>
+                                    <td>@record.FirstName</td>
+                                    <td>@record.Surname</td>
+                                    <td>@record.EmployeeType</td>
+                                    <td>@record.Area</td>
+                                    <td>@record.ClassCode</td>
+                                    <td>@record.ClassName</td>
+                                    <td>@record.FTBaseHrs</td>
+                                    <td>@record.WorkFraction</td>
+                                    <td>@record.EmployeeStatus</td>
+                                    <td>@record.ContractExpiryDate</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm" @onclick="(() => OnClickEditDelete(record))">
+                                            <i class=" fas fa-eraser"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (@_showEditModal)
+                    {
+                        <!-- This is the popup to delete or edit a user -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Edit User</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close"
+                                                @onclick="OnHideEditDeleteModal">
+                                            <span aria-hidden="true">X</span>
+                                        </button>
+                                    </div>
+                                    <!-- Edit form for the current user -->
+                                    <div class="modal-body">
+                                        <p>Academic Staff ID</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.AcademicStaffID @bind="_selectedAcademicStaffRow.AcademicStaffID" />
+                                        <br />
+                                        <p>First Name</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.FirstName @bind="_selectedAcademicStaffRow.FirstName " />
+                                        <br />
+                                        <p>Surname</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.Surname @bind="_selectedAcademicStaffRow.Surname" />
+                                        <br />
+                                        <p>ECR_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.EmployeeType @bind="_selectedAcademicStaffRow.EmployeeType" />
+                                        <br />
+                                        <p>Income_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.Area @bind="_selectedAcademicStaffRow.Area " />
+                                        <br />
+                                        <p>Completions_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.ClassCode @bind="_selectedAcademicStaffRow.ClassCode" />
+                                        <br />
+                                        <p>ECR_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.ClassName @bind="_selectedAcademicStaffRow.ClassName" />
+                                        <br />
+                                        <p>Income_Pc</p>
+                                        <input class="form-control" type="number" placeholder=@_selectedAcademicStaffRow.FTBaseHrs @bind="_selectedAcademicStaffRow.FTBaseHrs " />
+                                        <br />
+                                        <p>Completions_Pc</p>
+                                        <input class="form-control" type="number" placeholder=@_selectedAcademicStaffRow.WorkFraction @bind="_selectedAcademicStaffRow.WorkFraction" />
+                                        <br />
+                                        <p>ECR_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.EmployeeStatus @bind="_selectedAcademicStaffRow.EmployeeStatus" />
+                                        <br />
+                                        <p>Income_Pc</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedAcademicStaffRow.ContractExpiryDate @bind="_selectedAcademicStaffRow.ContractExpiryDate " />
+                                        <br />
+                                        <p>Completions_Pc</p>
+                                        <input class="form-control" type="number" placeholder=@_selectedAcademicStaffRow.WorkMax_Pc @bind="_selectedAcademicStaffRow.WorkMax_Pc" />
+                                        <br />
+                                        <br />
+                                        <!-- Button to save the user -->
+                                        <button class="btn btn-primary"
+                                                @onclick="OnSaveEdit">
+                                            Save
+                                        </button>
+                                        <!-- Button to delete the forecast -->
+                                        <button class="btn btn-danger"
+                                                @onclick="OnDeleteAcademicStaff">
+                                            Delete
+                                        </button>
+                                        <br />
+                                        @*<span style="color:red">@strError</span>*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (@_currentSection == "NewEntrySection")
+                {
+                    <div id="NewEntrySection" class="initiallyHidden">
+
+                        <EditForm Model="@_newAcademicStaffEntry" OnValidSubmit="@OnSubmitCreateAcademicStaff">
+                            <DataAnnotationsValidator />
+                            <div class="col-12 row">
+                                <label class="col-2">Staff ID: </label>
+                                <InputSelect class="form-control col-3" @bind-Value="_newAcademicStaffEntry.AcademicStaffID">
+                                    <option selected>Staff ID</option>
+                                    @foreach (var id in @_staffListId)
+                                            {
+                                        <option value="@id">
+                                            @id
+                                        </option>
+                                            }
+                                </InputSelect>
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Completions_Pc: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.FirstName" placeholder="FirstName" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Discretionary_Pc: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.Surname" placeholder="Surname" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Employee Type: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.EmployeeType" placeholder="Employee Type" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Area: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.Area" placeholder="Area" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Class Code: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.ClassCode" placeholder="Class Code" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Clas Name: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.ClassName" placeholder="Class Name" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Full Time Base Hours: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newAcademicStaffEntry.FTBaseHrs" placeholder="Full Time Base Hours" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Work Fraction: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newAcademicStaffEntry.WorkFraction" placeholder="Work Fraction" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Employee Status </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.EmployeeStatus" placeholder="Employee Status" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Contract Expiry Date: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newAcademicStaffEntry.ContractExpiryDate" placeholder="Contract Expiry Date" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Workload Max Percent: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newAcademicStaffEntry.WorkMax_Pc" placeholder="Workload Max Percent" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Teaching Max Percent: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newAcademicStaffEntry.TeachingMax_Pc" placeholder="Teaching Max Percent" />
+                            </div>
+                            <br />
+                            <br />
+                            <input type="submit" class="form-control col-1 btn btn-primary" value="Save" />
+                        </EditForm>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private List<IntermediateAcademicStaff> _academicStaffData;
+    private IntermediateAcademicStaff _selectedAcademicStaffRow;
+    private IntermediateAcademicStaff _newAcademicStaffEntry = new IntermediateAcademicStaff();
+    private List<string> _staffListId;
+
+    private string _currentSection = "EditSection"; // EditSection, NewEntrySection
+    private bool _showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAcademicStaffData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-academicStaff-table");
+
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-academicStaff-table");
+    }
+
+    private async Task LoadAcademicStaffData()
+    {
+        _academicStaffData = await DataAccess.GetListAsync();
+        _staffListId = await DataAccess.GetIdListAsync();
+    }
+
+    private void OnClickEditDelete(IntermediateAcademicStaff academicStaff)
+    {
+        _selectedAcademicStaffRow = academicStaff;
+        _showEditModal = true;
+    }
+
+    private void OnHideEditDeleteModal() { _showEditModal = false; }
+
+    private async Task OnSaveEdit()
+    {
+        await DataAccess.AddAsync(_selectedAcademicStaffRow);
+        OnHideEditDeleteModal();
+        await LoadAcademicStaffData();
+    }
+
+    private async Task OnDeleteAcademicStaff()
+    {
+        //maybe show confirm dialog/modal? then remove there
+        await DataAccess.RemoveAsync(_selectedAcademicStaffRow);
+        OnHideEditDeleteModal();
+
+        //breaks on updatepage after delete
+        //await LoadAcademicStaffData();
+        //_academicStaffData.Remove(_selectedAcademicStaffRow);
+    }
+
+    private async Task OnSubmitCreateAcademicStaff()
+    {
+        await DataAccess.AddAsync(_newAcademicStaffEntry);
+        await LoadAcademicStaffData();
+    }
+
+    private async Task ShowEditSection()
+    {
+        _currentSection = "EditSection";
+        //await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-academicStaff-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+
+    private async Task ShowNewEntrySection()
+    {
+        _currentSection = "NewEntrySection";
+        //JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-academicStaff-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+}

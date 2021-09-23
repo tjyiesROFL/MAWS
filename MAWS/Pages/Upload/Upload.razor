@@ -1,0 +1,221 @@
+﻿@page "/upload"
+@using Microsoft.AspNetCore.Identity
+@using BlazorInputFile
+@using Services.UploadData
+@using Models
+@using System.IO
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+@using  System.Globalization
+@inject IEnumerable<IUploadData> UploadData
+@inject UserManager<ApplicationUser> UserManager
+@inject IDataAccessServices<IntermediateTeachingPattern> DataAccess
+@inject MAWS.Services.QueryTeachingPatterns QTP
+
+<h3 class="page-heading-murdoch">Upload</h3>
+<AuthorizeView Roles="Administrator, Head Of Discipline">
+    <Authorized>
+
+        <h4>Upload Academic Staff</h4>
+
+        <InputFile OnChange="HandleStaffFileSelected" /> <span class=@_badgeColourStaff>@_uploadStatusStaff</span> <br /><br />
+
+        <h4>Upload Discipline</h4>
+
+        <InputFile OnChange="HandleDisciplineFileSelected" /> <span class=@_badgeColourDiscipline>@_uploadStatusDiscipline</span> <br /><br />
+
+        <h4>Upload Unit</h4>
+
+        <InputFile OnChange="HandleUnitFileSelected" /> <span class=@_badgeColourUnit>@_uploadStatusUnit</span> <br /><br />
+
+        <h4>Upload Unit Offerings</h4>
+
+        <InputFile OnChange="HandleUnitOfferingFileSelected" /> <span class=@_badgeColourUnitOfferings>@_uploadStatusUnitOfferings</span> <br /><br />
+
+        <h4>Upload Research</h4>
+
+        <InputFile OnChange="HandleResearchFileSelected" /><span class=@_badgeColourResearch>@_uploadStatusResearch</span> <br /><br />
+
+        <h4>Upload Service</h4>
+
+        <InputFile OnChange="HandleServiceFileSelected" /><span class=@_badgeColourService>@_uploadStatusService</span> <br /><br />
+
+        <h4>Upload Supervision</h4>
+
+        <InputFile OnChange="HandleSupervisionFileSelected" /><span class=@_badgeColourSupervision>@_uploadStatusSupervision</span> <br /><br />
+
+        <h4>Upload Misc Teaching Activities</h4>
+
+        <InputFile OnChange="HandleMiscTeachingActivityFileSelected" /><span class=@_badgeColourMiscTeachingActivities>@_uploadStatusMiscTeachingActivities</span> <br /><br />
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private System.Security.Claims.ClaimsPrincipal CurrentUser { get; set; }
+
+    private string _status;
+    private string _toastMessage = "";
+    IFileListEntry file;
+
+    private string _badgeSuccessColour = "badge badge-success";
+    private string _badgeDefaultColour = "badge badge-info";
+    private string _badgeFailureColour = "badge badge-danger";
+    private string _badgeSuccessMessage = "Upload completed";
+    private string _badgeDefaultMessage = "Uploading.";
+    private string _badgeFailureMessage = "Upload failed.";
+
+    private string _badgeColourStaff, _badgeColourDiscipline, _badgeColourUnit, _badgeColourUnitOfferings, _badgeColourResearch, _badgeColourService, _badgeColourSupervision, _badgeColourMiscTeachingActivities;
+    private string _uploadStatusStaff, _uploadStatusDiscipline, _uploadStatusUnit, _uploadStatusUnitOfferings, _uploadStatusResearch, _uploadStatusService, _uploadStatusSupervision, _uploadStatusMiscTeachingActivities;
+
+
+    async Task UploadRequest(IUploadData uploadDataClass, IFileListEntry file)
+    {
+        var ms = new MemoryStream();
+        await file.Data.CopyToAsync(ms);
+        ms.Position = 0;
+
+        if (uploadDataClass == null)
+        {
+            _status = $"Error accessing the upload class.";
+        }
+        else
+        {
+            await uploadDataClass.Upload(ms);
+            _status = $"Finished loading {file.Size} bytes from {file.Name}";
+        }
+    }
+
+    async Task HandleDisciplineFileSelected(IFileListEntry[] files)
+    {
+        _uploadStatusDiscipline = _badgeDefaultMessage;
+        _badgeColourDiscipline = _badgeDefaultColour;
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var disciplineClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadDiscipline");
+            await UploadRequest(disciplineClass, file);
+
+            _badgeColourDiscipline = _badgeSuccessColour;
+            _uploadStatusDiscipline = _badgeSuccessMessage;
+        }
+    }
+
+    async Task HandleUnitFileSelected(IFileListEntry[] files)
+    {
+        _badgeColourUnit = _badgeDefaultColour;
+        _uploadStatusUnit = _badgeDefaultMessage;
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var unitClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadUnit");
+            await UploadRequest(unitClass, file);
+            _badgeColourUnit = _badgeSuccessColour;
+            _uploadStatusUnit = _badgeSuccessMessage;
+        }
+    }
+
+    async Task HandleUnitOfferingFileSelected(IFileListEntry[] files)
+    {
+        _badgeColourUnitOfferings = _badgeDefaultColour;
+        _uploadStatusUnitOfferings = _badgeDefaultMessage;
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var unitOfferingClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadUnitOffering");
+            await UploadRequest(unitOfferingClass, file);
+            _badgeColourUnitOfferings = _badgeSuccessColour;
+            _uploadStatusUnitOfferings = _badgeSuccessMessage;
+        }
+    }
+
+    async Task HandleStaffFileSelected(IFileListEntry[] files)
+    {
+        _badgeColourStaff = _badgeDefaultColour;
+        _uploadStatusStaff = _badgeDefaultMessage;
+
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var staffClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadAcademicStaff");
+            await UploadRequest(staffClass, file);
+
+            _badgeColourStaff = _badgeSuccessColour;
+            _uploadStatusStaff = _badgeSuccessMessage;
+        }
+    }
+
+    async Task HandleResearchFileSelected(IFileListEntry[] files)
+    {
+        _badgeColourResearch = _badgeDefaultColour;
+        _uploadStatusResearch = _badgeDefaultMessage;
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var researchClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadResearch");
+            await UploadRequest(researchClass, file);
+            _badgeColourResearch = _badgeSuccessColour;
+            _uploadStatusResearch = _badgeSuccessMessage;
+        }
+    }
+
+    async Task HandleServiceFileSelected(IFileListEntry[] files)
+    {
+        _badgeColourService = _badgeDefaultColour;
+        _uploadStatusService = _badgeDefaultMessage;
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var serviceClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadService");
+            await UploadRequest(serviceClass, file);
+            _badgeColourService = _badgeSuccessColour;
+            _uploadStatusService = _badgeSuccessMessage;
+        }
+    }
+
+    async Task HandleSupervisionFileSelected(IFileListEntry[] files)
+    {
+        _badgeColourSupervision = _badgeDefaultColour;
+        _uploadStatusSupervision = _badgeDefaultMessage;
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+            var supervisionClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadSupervision");
+            await UploadRequest(supervisionClass, file);
+            _badgeColourSupervision = _badgeSuccessColour;
+            _uploadStatusSupervision = _badgeSuccessMessage;
+        }
+    }
+
+    async Task HandleMiscTeachingActivityFileSelected(IFileListEntry[] files)
+    {
+        _badgeColourMiscTeachingActivities = _badgeDefaultColour;
+        _uploadStatusMiscTeachingActivities = _badgeDefaultMessage;
+        file = files.FirstOrDefault();
+        if (file != null)
+        {
+
+            var miscTeachingActivityClass = UploadData.FirstOrDefault(impl => impl.ClassName == "UploadMiscTeachingActivity");
+            await UploadRequest(miscTeachingActivityClass, file);
+            _badgeColourMiscTeachingActivities = _badgeSuccessColour;
+            _uploadStatusMiscTeachingActivities = _badgeSuccessMessage;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        //CurrentUser = (await authenticationStateTask).User;
+        //ApplicationUser test = await UserManager.FindByNameAsync(CurrentUser.Identity.Name);
+        //Console.WriteLine(test.Id);
+
+
+
+
+
+
+    }
+}

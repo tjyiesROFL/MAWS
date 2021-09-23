@@ -1,0 +1,87 @@
+﻿@page "/View/AcademicStaff"
+@using Microsoft.AspNetCore.Identity
+@using MAWS.IntermediateData
+@using MAWS.Models
+@inject IJSRuntime JsRuntimes
+@inject MAWS.Services.QueryAcademicStaff queryStaff
+
+<h3 class="page-heading-murdoch">Academic Staff</h3>
+
+<div>
+    <AuthorizeView>
+        <Authorized>
+            @if (@context.User.IsInRole(ApplicationData.Administrator))
+            {
+                @if (_staffList == null)
+                {
+                    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                    <span class="sr-only">Loading...</span>
+                }
+                else
+                {
+                    <table id="view-academic-staff-table" class="display table">
+                        <thead>
+                            <tr>
+                                <th>First Name</th>
+                                <th>Surname</th>
+                                <th>Employee Type</th>
+                                <th>Employee Status</th>
+                                <th>Classification</th>
+                                <th>Employee Fration</th>
+                                <th>Area</th>
+                                <th>Contract Expiry</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in _staffList)
+                            {
+                                <tr>
+                                    <td>@record.FirstName</td>
+                                    <td>@record.Surname</td>
+                                    <td>@record.EmployeeType</td>
+                                    <td>@record.EmployeeStatus</td>
+                                    <td>@record.ClassName</td>
+                                    <td>@record.WorkFraction</td>
+                                    <td>@record.Area</td>
+                                    <td>@record.ContractExpiryDate</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <button class="btn btn-info">Export as CSV</button>
+                }
+            }
+            else
+            {
+                <p>You're not signed in as a user in @ApplicationData.Administrator.</p>
+            }
+        </Authorized>
+    </AuthorizeView>
+    @* </div> *@
+</div>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    System.Security.Claims.ClaimsPrincipal CurrentUser;
+
+    
+
+    private List<AcademicStaff> _staffList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _staffList = await queryStaff.GetStaffListAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntimes.InvokeAsync<object>("DataTablesAdd", "#view-academic-staff-table");
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntimes.InvokeAsync<object>("DataTablesRemove", "#view-academic-staff-table");
+    }
+}

@@ -1,0 +1,124 @@
+﻿@page "/View"
+@using MAWS.IntermediateData
+
+<h3 class="page-heading-murdoch">View</h3>
+<div class="container">
+    <div class="row text-center">
+        <AuthorizeView Roles=@ApplicationData.Administrator>
+            <Authorized>
+                <div class="col-sm text-center m-2 m-lg-3 ">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/Users" Match="NavLinkMatch.All">
+                                <i class="fas fa-users fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Users</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles=@ApplicationData.AdministratorOrContractsAdministratorOrHeadOfDisciplineOrUnitCoordinator>
+            <Authorized>
+                <div class="col-sm  text-center m-2 m-lg-3">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/AcademicStaff" Match="NavLinkMatch.All">
+                                <i class="fas fa-chalkboard-teacher fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Academic Staff</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles=@ApplicationData.AdministratorOrHeadOfDisciplineOrUnitCoordinatorOrAcademicStaff>
+            <Authorized>
+                <div class="col-sm text-center m-2 m-lg-3">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/Units" Match="NavLinkMatch.All">
+                                <i class="fas fa-book fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Units</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm text-center m-2 m-lg-3">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/UnitOfferings" Match="NavLinkMatch.All">
+                                <i class="fas fa-book-open fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Unit Offerings</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles=@ApplicationData.HeadOfDisciplineOrUnitCoordinatorOrAcademicStaff>
+            <Authorized>
+                <div class="col-sm text-center m-2 m-lg-3">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/TeachingPatterns" Match="NavLinkMatch.All">
+                                <i class="fas fa-align-right fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Teaching Patterns</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles=@ApplicationData.ContractsAdministratorOrHeadOfDisciplineOrUnitCoordinatorOrAcademicStaff>
+            <Authorized>
+                <div class="col-sm text-center m-2 m-lg-3">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/UnitActivities" Match="NavLinkMatch.All">
+                                <i class="fas fa-book-reader fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Unit Activities</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm text-center m-2 m-lg-3">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/UnitActivityAssignments" Match="NavLinkMatch.All">
+                                <i class="fas fa-file-alt fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Activity Assignments</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles=@ApplicationData.HeadOfDiscipline>
+            <Authorized>
+                <div class="col-sm text-center m-2 m-lg-3">
+                    <div class="card card-block d-flex background-murdoch-text murdoch-card">
+                        <div class="card-body align-items-center d-flex justify-content-center">
+                            <NavLink class="nav-link text-white" href="View/StaffWorkloadAlerts" Match="NavLinkMatch.All">
+                                <i class="fas fa-biohazard fa-2x fa-fw card-title" aria-hidden="true"></i>
+                                <h4>Workload Alerts</h4>
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+    </div>
+</div>
+
+@code {
+
+    
+
+}

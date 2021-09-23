@@ -1,0 +1,38 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity.UI
+@using MAWS.Models;
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+<AuthorizeView>
+    <Authorized>
+
+        @context.User.Identity.Name<br />
+        <form method="post" action="Identity/Account/LogOut">
+            <button style="color:azure" type="submit" class="nav-link btn btn-link">Log out <span class="oi oi-account-logout" aria-hidden="true"></span></button>
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <a style="color:azure" href="Identity/Account/Login">Login<span class="oi oi-account-login" aria-hidden="true"></span></a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    System.Security.Claims.ClaimsPrincipal CurrentUser;
+
+    ApplicationUser objUser = new ApplicationUser();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        // Get the current logged in user
+        CurrentUser = (await authenticationStateTask).User;
+    }
+
+}

@@ -1,0 +1,246 @@
+﻿@page "/Manage/AcademicSupervision"
+
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+
+@inject IDataAccessServices<IntermediateSupervision> DataAccess
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+
+<h3 class="page-heading-murdoch">Manage Academic Supervision</h3>
+
+<div>
+    <AuthorizeView Context="Auth">
+        @*https://github.com/chanan/BlazorStrap/issues/149#issuecomment-569862948*@
+        <Authorized>
+            @if (@_supervisionData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <label class="btn btn-danger btn-lg active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" @onclick="ShowEditSection" checked> Edit Supervision
+                    </label>
+                    <label class="btn btn-danger btn-lg">
+                        <input type="radio" name="options" id="option2" autocomplete="off" @onclick="ShowNewEntrySection"> Add New
+                    </label>
+                </div>
+                <hr />
+                if (_currentSection == "EditSection")
+                {
+                    <div id="EditSection" class="">
+                        <table id="manage-academic-supervision-table" class="display table">
+                            <thead>
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>Surname</th>
+                                    <th>Year</th>
+                                    <th>Type </th>
+                                    <th>Supervision Hours</th>
+                                    <th>Comments </th>
+                                    <th>Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in @_supervisionData)
+                                {
+
+                                    <tr>
+                                        <td>@record.FirstName</td>
+                                        <td>@record.Surname</td>
+                                        <td>@record.Year</td>
+                                        <td>@record.Type</td>
+                                        <td>@record.Hours</td>
+                                        <td>@record.Comments</td>
+                                        <td>
+                                            <button class="btn btn-success btn-sm" @onclick="(() => OnClickEditDelete(record))">
+                                                <i class=" fas fa-eraser"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (@_showEditModal)
+                    {
+                        <!-- This is the popup to delete or edit a user -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Edit User</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close"
+                                                @onclick="OnHideEditDeleteModal">
+                                            <span aria-hidden="true">X</span>
+                                        </button>
+                                    </div>
+                                    <!-- Edit form for the current user -->
+                                    <div class="modal-body">
+                                        <p>Hours</p>
+                                        <input class="form-control" type="number" placeholder=@_selectedSupervisionRow.Hours @bind="_selectedSupervisionRow.Hours" />
+                                        <br />
+                                        <p>Type</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedSupervisionRow.Type @bind="_selectedSupervisionRow.Type " />
+                                        <br />
+                                        <p>Comments</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedSupervisionRow.Comments @bind="_selectedSupervisionRow.Comments" />
+                                        <br />
+                                        <br />
+                                        <!-- Button to save the user -->
+                                        <button class="btn btn-primary"
+                                                @onclick="OnSaveEdit">
+                                            Save
+                                        </button>
+                                        <!-- Button to delete the forecast -->
+                                        <button class="btn btn-danger"
+                                                @onclick="OnDeleteSupervision">
+                                            Delete
+                                        </button>
+                                        <br />
+                                        @*<span style="color:red">@strError</span>*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (@_currentSection == "NewEntrySection")
+                {
+                    <div id="NewEntrySection" class="initiallyHidden">
+
+                        <EditForm Model="@_newSupervisionEntry" OnValidSubmit="@OnSubmitCreateSupervision">
+                            <DataAnnotationsValidator />
+                            <div class="col-12 row">
+                                <label class="col-2">Staff ID: </label>
+                                <InputSelect class="form-control col-3" @bind-Value="_newSupervisionEntry.AcademicStaffID">
+                                    <option selected>Staff ID</option>
+                                    @foreach (var id in @_staffListId)
+                                            {
+                                        <option value="@id">
+                                            @id
+                                        </option>
+                                            }
+                                </InputSelect>
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Year: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newSupervisionEntry.Year" placeholder=@_newSupervisionEntry.Year />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Hours: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newSupervisionEntry.Hours" placeholder=@_newSupervisionEntry.Hours />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Type: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newSupervisionEntry.Type" placeholder=@_newSupervisionEntry.Type />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">Comments: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newSupervisionEntry.Comments" placeholder=@_newSupervisionEntry.Comments />
+                            </div>
+                            <br />
+                            <input type="submit" class="form-control col-1 btn btn-primary" value="Save" />
+                        </EditForm>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private List<IntermediateSupervision> _supervisionData;
+    private IntermediateSupervision _selectedSupervisionRow;
+    private IntermediateSupervision _newSupervisionEntry = new IntermediateSupervision();
+    private List<string> _staffListId;
+
+    private string _currentSection = "EditSection"; // EditSection, NewEntrySection
+    private bool _showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSupervisionData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-supervision-table");
+
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-supervision-table");
+    }
+
+    private async Task LoadSupervisionData()
+    {
+        _supervisionData = await DataAccess.GetListAsync();
+        _staffListId = await DataAccess.GetIdListAsync();
+    }
+
+    private void OnClickEditDelete(IntermediateSupervision supervision)
+    {
+        _selectedSupervisionRow = supervision;
+        _showEditModal = true;
+    }
+
+    private void OnHideEditDeleteModal() { _showEditModal = false; }
+
+    private async Task OnSaveEdit()
+    {
+        await DataAccess.AddAsync(_selectedSupervisionRow);
+        OnHideEditDeleteModal();
+        await LoadSupervisionData();
+    }
+
+    private async Task OnDeleteSupervision()
+    {
+        //maybe show confirm dialog/modal? then remove there
+        await DataAccess.RemoveAsync(_selectedSupervisionRow);
+        OnHideEditDeleteModal();
+
+        //breaks on updatepage after delete
+        //await LoadSupervisionData();
+        //_supervisionData.Remove(_selectedSupervisionRow);
+    }
+
+    private async Task OnSubmitCreateSupervision()
+    {
+        await DataAccess.AddAsync(_newSupervisionEntry);
+        await LoadSupervisionData();
+    }
+
+    private async Task ShowEditSection()
+    {
+        _currentSection = "EditSection";
+        //await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-supervision-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+
+    private async Task ShowNewEntrySection()
+    {
+        _currentSection = "NewEntrySection";
+        //JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-supervision-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+}

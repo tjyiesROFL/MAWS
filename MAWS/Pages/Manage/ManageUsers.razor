@@ -1,0 +1,454 @@
+﻿@page "/Manage/Users"
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@inject UserManager<ApplicationUser> _UserManager
+@inject RoleManager<UserRole> _RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+@inject MAWS.Services.QueryUsers queryUsers
+@inject MAWS.Services.QueryAcademicStaff queryAcademicStaff
+
+<h3 class="page-heading-murdoch">Manage Users</h3>
+
+<div>
+    <ul class="nav flex-column">
+        <li class="nav-item px-3">
+            <button class="btn btn-info" @onclick="expandSection"></button>Create User
+            <div id="expandNew" class="initiallyHidden">
+                <br />
+                <br />
+                <!----------------------------------------------- Section to create new user -->
+                <AuthorizeView>
+                    <Authorized Context="Auth">
+                        @if (Auth.User.IsInRole(ApplicationData.Administrator))
+                        {
+                            <EditForm Model="@createUser" OnValidSubmit="@CreateUser">
+                                <DataAnnotationsValidator />
+                                <div class="col-12 row">
+                                    <label class="col-2">Username: </label>
+                                    <InputText class="form-control col-3" @bind-Value="createUser.UserName" placeholder="Username" />
+                                </div>
+                                <br />
+                                <div class="col-12 row">
+                                    <label class="col-2">Full Name: </label>
+                                    <InputText class="form-control col-3" @bind-Value="createUser.FullName" placeholder="Full Name" />
+                                </div>
+                                <br />
+                                <div class="col-12 row">
+                                    <label class="col-2">Email: </label>
+                                    <InputText class="form-control col-3" @bind-Value="createUser.Email" placeholder="Email" />
+                                </div>
+                                <br />
+                                <div class="col-12 row">
+                                    <label class="col-2">Password: </label>
+                                    <InputText class="form-control col-3" @bind-Value="createPassword" placeholder="Password" />
+                                </div>
+                                <br />
+                                <div class="col-12 row">
+                                    <label class="col-2">User Role: </label>
+                                    <InputSelect class="form-control col-3" @bind-Value="createRole">
+                                        @foreach (var role in ApplicationData.AcademicRoleOptions)
+                                            {
+                                            <option value="@role">
+                                                @role
+                                            </option>
+                                            }
+                                    </InputSelect>
+                                </div>
+                                <br />
+                                <div class="col-12 row">
+                                    <label class="col-2">Staff ID: </label>
+                                    <InputSelect class="form-control col-3" @bind-Value="createStaffID">
+                                        @foreach (var id in CreateStaffIDOptions)
+                                            {
+                                            <option value="@id">
+                                                @id
+                                            </option>
+                                            }
+                                    </InputSelect>
+                                </div>
+                                <span style="color:red">@strError</span>
+                                <br />
+                                <input type="submit" class="form-controlcol-1 ntn btn-primary" value="Save" />
+                                @formDetails
+                            </EditForm>
+                        }
+                        else
+                        {
+                            <p>You're not signed in as a user in @ApplicationData.Administrator</p>
+                        }
+                    </Authorized>
+                    <NotAuthorized>
+                        <p>You're not loggged in.</p>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </li>
+        <li class="nav-item px-3">
+            <button class="btn btn-info" @onclick="expandSectionTwo"></button>View/Edit Existing Users
+            <div id="expandExisting" class="initiallyHidden" style="width:70%" height="70%">
+                <!------------------------------------ Section View all current users and either EDIT or DELETE -->
+                <AuthorizeView>
+                    <Authorized>
+                        @if (@context.User.IsInRole(ApplicationData.Administrator))
+                        {
+                            <table id="table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Full Name</th>
+                                        <th>Email</th>
+                                        <th>Username</th>
+                                        <th>User Role</th>
+                                        <th>Academic Staff ID</th>
+                                        <th>Edit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in ApplicationUserList)
+                                    {
+                                        <tr>
+                                            <td>@user.FullName</td>
+                                            <td>@user.Email</td>
+                                            <td>@user.UserName</td>
+                                            <td>@user.RoleTitle</td>
+                                            <td>@user.AcademicStaffID</td>
+                                            <td>
+                                                <button class="btn btn-primary"
+                                                        @onclick="(() => EditPopUp(user))">
+                                                    Edit
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            applyTableStyling();
+                            @if (ShowPopup)
+                            {
+                                <!-- This is the popup to delete or edit a user -->
+                                <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h3 class="modal-title">Edit User</h3>
+                                                <!-- Button to close the popup -->
+                                                <button type="button" class="close"
+                                                        @onclick="ClosePopup">
+                                                    <span aria-hidden="true">X</span>
+                                                </button>
+                                            </div>
+                                            <!-- Edit form for the current user -->
+                                            <div class="modal-body">
+                                                <p>Username</p>
+                                                <input class="form-control" type="text" placeholder=@editUser.UserName @bind="editUserName" />
+                                                <br />
+                                                <p>Full Name</p>
+                                                <input class="form-control" type="text" placeholder=@editUser.FullName @bind="editFullName " />
+                                                <br />
+                                                <p>Email</p>
+                                                <input class="form-control" type="text" placeholder=@editUser.Email @bind="editEmail" />
+                                                <br />
+                                                <p>User Role</p>
+                                                <select class="form-control" @bind="@editRole">
+                                                    @foreach (var role in editRoleOptions)
+                                                    {
+                                                        <option value="@role">
+                                                            @role
+                                                        </option>
+                                                    }
+                                                </select>
+                                                <br />
+                                                <p>Staff ID</p>
+                                                <select class="form-control" @bind="@editStaffID">
+                                                    @foreach (var id in editStaffIDOptions)
+                                                    {
+                                                        <option value="@id">
+                                                            @id
+                                                        </option>
+                                                    }
+                                                </select>
+                                                <br />
+                                                <p>Password</p>
+                                                <input class="form-control" type="password" placeholder="********" @bind="editPassword" />
+                                                <br />
+                                                <br />
+                                                <!-- Button to save the user -->
+                                                <button class="btn btn-primary"
+                                                        @onclick="SaveEdit">
+                                                    Save
+                                                </button>
+                                                <!-- Button to delete the forecast -->
+                                                <button class="btn btn-danger"
+                                                        @onclick="DeleteUser">
+                                                    Delete
+                                                </button>
+                                                <br />
+                                                <span style="color:red">@strError</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p>You're not signed in as a user in @ApplicationData.Administrator</p>
+                        }
+                    </Authorized>
+                    <NotAuthorized>
+                        <p>You're not loggged in.</p>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </li>
+    </ul>
+</div>
+
+@code {
+
+    //-------------------INFORMATION RELATING TO CURRENT USER
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private System.Security.Claims.ClaimsPrincipal CurrentUser;
+
+    
+
+    //------------------list of currently existing Users
+    private List<ApplicationUser> ApplicationUserList;
+    private List<string> CreateStaffIDOptions;
+
+    //------------------INFORMATION FOR CREATING NEW USER
+    private ApplicationUser createUser;
+    private string createRole { get; set; }
+    private string createPassword { get; set; }
+    private string createStaffID { get; set; }
+
+    //------------------INFORMATION FOR EDITING AN EXISINTG USER
+    private ApplicationUser editUser;
+    private string editUserName { get; set; }
+    private string editFullName { get; set; }
+    private string editEmail { get; set; }
+    private string editStaffID { get; set; }
+    private string editRole { get; set; }
+    private string editPassword { get; set; }
+    private List<string> editRoleOptions;
+    private List<string> editStaffIDOptions;
+
+    private string formDetails = "";
+
+    // To hold any possible errors
+    private string strError = "";
+    // To enable showing the Popup
+    private bool ShowPopup = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get the current logged in user
+        CurrentUser = (await authenticationStateTask).User;
+        UpdateApplicationUserList();
+    }
+
+    protected override void OnInitialized()
+    {
+
+        RefreshTable();
+        PopulateCreateAcademicStaffIDList();
+        SetNewCreateFormData();
+        SetNewEditFormData();
+
+    }
+
+    async Task CreateUser()
+    {
+
+        //---------------- WE ARE ONLY CREATING NEW ACADEMIC STAFF - USER ACCOUNTS
+        //---------------- NO ADDITIONAL ADMIN OR CONTRACTS ADMIN CAN BE CREATED
+
+        //---------------- IF USER WITH REQUESTED USERNAME DOESNT EXIST IN SYSTEM
+        if (await _UserManager.FindByNameAsync(createUser.UserName) == null)
+        {
+            //---------------- PUT REQUESTED ROLE INTO NEW STAFF OBJECT
+            createUser.RoleTitle = createRole;
+            //---------------- PUT REQUESTED STAFFID INTO NEW STAFF OBJECT
+            createUser.AcademicStaffID = createStaffID;
+            //---------------- CREATE USER WITH REQUESTED PASSWORD
+            await _UserManager.CreateAsync(createUser, createPassword);
+            if (await _UserManager.FindByNameAsync(createUser.UserName) != null) // if the creation was successful
+            {
+                //add to the requested role
+                await _UserManager.AddToRoleAsync(createUser, createRole);
+                //add the relation to the requested staff id
+                queryUsers.AddAcademicStaffApplicationUser(createUser);
+            }
+        }
+        else { Console.WriteLine("UserName already exists: " + createUser.UserName); }
+
+        PopulateCreateAcademicStaffIDList();
+        SetNewCreateFormData();
+        formDetails = "Valid Submission";
+        RefreshTable();
+    }
+
+    void EditPopUp(ApplicationUser _user)
+    {
+
+        // Set the user for edits
+        editUser = _user;
+        PopulateEditStaffIDOptions();
+        PopulateEditRoleOptions();
+        // Open the Popup
+        ShowPopup = true;
+    }
+
+    async Task SaveEdit()
+    {
+        //editUser
+        //---------------------------------------------ROLE CHANGE
+        if (editUser.RoleTitle != editRole)
+        {
+
+            //-----------------REMOVE PREVIOUS ROLE
+            await _UserManager.RemoveFromRoleAsync(editUser, editUser.RoleTitle);
+            //-----------------ADD TO NEW ROLE
+            await _UserManager.AddToRoleAsync(editUser, editRole);
+            //-----------------UPDATE ROLE TITLE IN ApplicationUser obj (our pseudo FK)
+            editUser.RoleTitle = editRole;
+
+        }
+        //---------------------------------------------EMAIL CHANGE
+        if (editEmail != "" && editUser.Email != editEmail)
+        {
+
+            await _UserManager.SetEmailAsync(editUser, editEmail);
+
+        }
+        //---------------------------------------------USERNAME CHANGE
+        if (editUserName != "" && editUser.UserName != editUserName)
+        {
+
+            await _UserManager.SetUserNameAsync(editUser, editUserName);
+
+        }
+        //---------------------------------------------FULL NAME CHANGE
+        if (editFullName != "" && editUser.FullName != editFullName)
+        {
+
+            editUser.FullName = editFullName;
+
+        }
+        //---------------------------------------------STAFF ID CHANGE
+        if (editUser.AcademicStaffID != editStaffID)
+        {
+
+            editUser.AcademicStaffID = editStaffID;
+            queryUsers.UpdateAcademicStaffApplicationUser(editUser);
+
+
+        }
+
+        //operations.SaveChangesAsync(); old function
+        SetNewEditFormData();
+        RefreshTable();
+
+    }
+
+    async Task DeleteUser()
+    {
+
+
+        //--------------DELETED THE CURRENTLY SELECTED USER
+        await _UserManager.DeleteAsync(editUser);
+
+        //--------------CLOSE POPUP
+        ShowPopup = false;
+
+        //--------------REFRESH USERS TABLE TO REFLECT CHANGE
+        RefreshTable();
+    }
+
+    void ClosePopup()
+    {
+        // Close the Popup
+        ShowPopup = false;
+    }
+
+    protected void applyTableStyling()
+    {
+        //JsRuntime.InvokeAsync<object>("TestDataTablesAdd", "#table");
+    }
+
+    protected void RefreshTable()
+    {
+        UpdateApplicationUserList();
+        applyTableStyling();
+    }
+
+    protected void UpdateApplicationUserList()
+    {
+
+        ApplicationUserList = _UserManager.Users.ToList();
+
+    }
+
+    protected void SetNewCreateFormData()
+    {
+
+        createUser = new ApplicationUser();
+        createRole = "";
+        createPassword = "";
+        createStaffID = "";
+    }
+
+    protected void SetNewEditFormData()
+    {
+
+        editUser = new ApplicationUser();
+        editUserName = "";
+        editFullName = "";
+        editEmail = "";
+        editStaffID = "";
+        editRole = "";
+        editPassword = "";
+
+    }
+
+    protected void PopulateCreateAcademicStaffIDList()
+    {
+
+        //------ first create an empty string among the staff options.
+        CreateStaffIDOptions = new List<string>();
+
+        var academicStaffList = queryAcademicStaff.GetStaffIDListNoAccount();
+
+        CreateStaffIDOptions.Add("Sessional Staff");
+        CreateStaffIDOptions.AddRange(academicStaffList);
+
+    }
+
+    protected void PopulateEditRoleOptions()
+    {
+        List<string> temp = new List<string>();
+        temp.Add("");
+        //temp.Add(editUser.RoleTitle);
+        editRoleOptions = ApplicationData.AcademicRoleOptions.Except(temp).ToList();
+    }
+
+    protected void PopulateEditStaffIDOptions()
+    {
+        editStaffIDOptions = new List<string>();
+        editStaffIDOptions.AddRange(queryAcademicStaff.GetStaffIDListNoAccount());
+    }
+
+    protected void expandSection()
+    {
+        JsRuntime.InvokeAsync<bool>("expandSection", "#expandNew");
+    }
+
+    protected void expandSectionTwo()
+    {
+        JsRuntime.InvokeAsync<bool>("expandSectionTwo", "#expandExisting");
+    }
+
+
+}

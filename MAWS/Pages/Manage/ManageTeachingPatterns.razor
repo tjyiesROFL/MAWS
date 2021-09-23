@@ -1,0 +1,288 @@
+﻿@page "/Manage/TeachingPatterns"
+
+@using Microsoft.AspNetCore.Identity
+@using MAWS.Models
+@using MAWS.IntermediateData
+@using MAWS.Services.DataAccess
+
+@inject IDataAccessServices<IntermediateTeachingPattern> DataAccess
+@inject MAWS.Services.QueryTeachingPatterns QTP
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<UserRole> RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime
+
+
+<h3 class="page-heading-murdoch">Manage Teaching Patterns</h3>
+
+<div>
+    <AuthorizeView Context="Auth">
+        @*https://github.com/chanan/BlazorStrap/issues/149#issuecomment-569862948*@
+        <Authorized>
+            @if (@_teachingPatternData == null)
+            {
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+                <span class="sr-only">Loading...</span>
+            }
+            else
+            {
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <label class="btn btn-danger btn-lg active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" @onclick="ShowEditSection" checked> Edit TeachingPattern
+                    </label>
+                    <label class="btn btn-danger btn-lg">
+                        <input type="radio" name="options" id="option2" autocomplete="off" @onclick="ShowNewEntrySection"> Add New
+                    </label>
+                </div>
+                <hr />
+                if (_currentSection == "EditSection")
+                {
+                    <div id="EditSection" class="">
+                        <table id="manage-academic-teachingPattern-table" class="display table">
+                            <thead>
+                                <tr>
+                                    <th>UnitCode</th>
+                                    <th>Year</th>
+                                    <th>TeachingPeriod</th>
+                                    <th>OfferingType</th>
+                                    <th>WOCT_HrsPerSessionFIRST</th>
+                                    <th>WOCT_SessionsPerWeekFIRST</th>
+                                    <th>WOCT_HrsPerSessionREPEAT</th>
+                                    <th>WOCT_SessionsPerWeekREPEAT</th>
+                                    <th>SGT_ClassSize</th>
+                                    <th>SGT_HrsPerSession</th>
+                                    <th>SGT_SessionsPerWeek</th>
+                                    <th>Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in @_teachingPatternData)
+                                {
+
+                                <tr>
+                                    <td>@record.UnitCode</td>
+                                    <td>@record.Year</td>
+                                    <td>@record.TeachingPeriod</td>
+                                    <td>@record.OfferingType</td>
+                                    <td>@record.WOCT_HrsPerSessionFIRST</td>
+                                    <td>@record.WOCT_SessionsPerWeekFIRST</td>
+                                    <td>@record.WOCT_HrsPerSessionREPEAT</td>
+                                    <td>@record.WOCT_SessionsPerWeekREPEAT</td>
+                                    <td>@record.SGT_ClassSize</td>
+                                    <td>@record.SGT_HrsPerSession</td>
+                                    <td>@record.SGT_SessionsPerWeek</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm" @onclick="(() => OnClickEditDelete(record))">
+                                            <i class=" fas fa-eraser"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (@_showEditModal)
+                    {
+                        <!-- This is the popup to delete or edit a user -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Edit User</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close"
+                                                @onclick="OnHideEditDeleteModal">
+                                            <span aria-hidden="true">X</span>
+                                        </button>
+                                    </div>
+                                    <!-- Edit form for the current user -->
+                                    <div class="modal-body">
+                                        <p>UnitCode</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedTeachingPatternRow.UnitCode @bind="_selectedTeachingPatternRow.UnitCode" />
+                                        <br />
+                                        <p>Year</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedTeachingPatternRow.Year @bind="_selectedTeachingPatternRow.Year " />
+                                        <br />
+                                        <p>TeachingPeriod</p>
+                                        <input class="form-control" type="text" placeholder=@_selectedTeachingPatternRow.TeachingPeriod @bind="_selectedTeachingPatternRow.TeachingPeriod" />
+                                        <br />
+                                        <br />
+                                        <!-- Button to save the user -->
+                                        <button class="btn btn-primary"
+                                                @onclick="OnSaveEdit">
+                                            Save
+                                        </button>
+                                        <!-- Button to delete the forecast -->
+                                        <button class="btn btn-danger"
+                                                @onclick="OnDeleteTeachingPattern">
+                                            Delete
+                                        </button>
+                                        <br />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (@_currentSection == "NewEntrySection")
+                {
+                    <div id="NewEntrySection" class="initiallyHidden">
+
+                        <EditForm Model="@_newTeachingPatternEntry" OnValidSubmit="@OnSubmitCreateTeachingPattern">
+                            <DataAnnotationsValidator />
+                            <div class="col-12 row">
+                                <label class="col-2">Unit Offering ID: </label>
+                                <InputSelect class="form-control col-3" @bind-Value="_newTeachingPatternEntry.UnitOfferingID">
+                                    <option selected>Offering ID</option>
+                                    @foreach (var id in _offeringListId)
+                                            {
+                                        <option value="@id">
+                                            @id
+                                        </option>
+                                            }
+                                </InputSelect>
+                            </div>
+                            <br />
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">TotalEnrolments: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.TotalEnrolments" placeholder="TotalEnrolments" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">ExternalEnrolments: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.ExternalEnrolments" placeholder="ExternalEnrolments" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">EnrolmentStatus: </label>
+                                <InputText class="form-control col-3" @bind-Value="_newTeachingPatternEntry.EnrolmentStatus" placeholder="EnrolmentStatus" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">WOCT_HrsPerSessionFIRST: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.WOCT_HrsPerSessionFIRST" placeholder="WOCT_HrsPerSessionFIRST" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">WOCT_SessionsPerWeekFIRST: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.WOCT_SessionsPerWeekFIRST" placeholder="WOCT_SessionsPerWeekFIRST" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">WOCT_HrsPerSessionREPEAT: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.WOCT_HrsPerSessionREPEAT" placeholder="WOCT_HrsPerSessionREPEAT" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">WOCT_SessionsPerWeekREPEAT: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.WOCT_SessionsPerWeekREPEAT" placeholder="WOCT_SessionsPerWeekREPEAT" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">SGT_ClassSizes: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.SGT_ClassSize" placeholder="SGT_ClassSize" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">SGT_HrsPerSession: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.SGT_HrsPerSession" placeholder="SGT_HrsPerSession" />
+                            </div>
+                            <br />
+                            <div class="col-12 row">
+                                <label class="col-2">SGT_SessionsPerWeek: </label>
+                                <InputNumber class="form-control col-3" @bind-Value="_newTeachingPatternEntry.SGT_SessionsPerWeek" placeholder="SGT_SessionsPerWeek" />
+                            </div>
+                            <br />
+                            <br />
+                            <input type="submit" class="form-control col-1 btn btn-primary" value="Save" />
+                        </EditForm>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private List<IntermediateTeachingPattern> _teachingPatternData;
+    private IntermediateTeachingPattern _selectedTeachingPatternRow;
+    private IntermediateTeachingPattern _newTeachingPatternEntry = new IntermediateTeachingPattern();
+    private List<string> _offeringListId;
+
+    private string _currentSection = "EditSection"; // EditSection, NewEntrySection
+    private bool _showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTeachingPatternData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-teachingPattern-table");
+
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-teachingPattern-table");
+    }
+
+    private async Task LoadTeachingPatternData()
+    {
+        _teachingPatternData = await DataAccess.GetListAsync();
+        _offeringListId = await DataAccess.GetIdListAsync();
+    }
+
+    private void OnClickEditDelete(IntermediateTeachingPattern teachingPattern)
+    {
+        _selectedTeachingPatternRow = teachingPattern;
+        _showEditModal = true;
+    }
+
+    private void OnHideEditDeleteModal() { _showEditModal = false; }
+
+    private async Task OnSaveEdit()
+    {
+        await DataAccess.AddAsync(_selectedTeachingPatternRow);
+        OnHideEditDeleteModal();
+        await LoadTeachingPatternData();
+    }
+
+    private async Task OnDeleteTeachingPattern()
+    {
+        //maybe show confirm dialog/modal? then remove there
+        await DataAccess.RemoveAsync(_selectedTeachingPatternRow);
+        OnHideEditDeleteModal();
+
+        //breaks on updatepage after delete
+        //await LoadTeachingPatternData();
+        //_teachingPatternData.Remove(_selectedTeachingPatternRow);
+    }
+
+    private async Task OnSubmitCreateTeachingPattern()
+    {
+
+        QTP.Add(_newTeachingPatternEntry);
+        await LoadTeachingPatternData();
+    }
+
+    private async Task ShowEditSection()
+    {
+        _currentSection = "EditSection";
+        //await JsRuntime.InvokeAsync<object>("DataTablesAdd", "#manage-academic-teachingPattern-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+
+    private async Task ShowNewEntrySection()
+    {
+        _currentSection = "NewEntrySection";
+        //JsRuntime.InvokeAsync<object>("TestDataTablesRemove", "#manage-academic-teachingPattern-table");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#EditSection");
+        await JsRuntime.InvokeAsync<object>("ToggleSection", "#NewEntrySection");
+    }
+}

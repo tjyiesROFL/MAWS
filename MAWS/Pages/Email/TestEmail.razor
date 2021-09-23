@@ -1,0 +1,45 @@
+@page "/testemail"
+
+@using Services.EmailNotification
+
+@inject IEmailNotification email
+
+<h3>Test Email</h3>
+
+<EditForm Model="@message" OnValidSubmit="SendEmailTest">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <label>To: </label>
+    <InputText id="To" @bind-Value="message.To" /><br/>
+    <label>From: </label>
+    <InputText id="From" @bind-Value="message.From" /><br/>
+    <label>Subject: </label>
+    <InputText id="Subject" @bind-Value="message.Subject" /><br/>
+    <label>Body: </label>
+    <InputTextArea id="Body" @bind-Value="message.Body" /><br/>
+
+    <button type="submit">Send Email</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(@status))
+{
+    <div class="alert alert-primary" role="alert">
+        @status
+    </div>
+} 
+
+
+@code {
+    private string status = "";
+    private Message message = new Message();
+
+    private async void SendEmailTest()
+    {
+        Console.WriteLine("OnValidSubmit");
+        status = await email.SendEmail(message);
+        message = new Message();
+    }
+}
+
+
+

@@ -1,0 +1,73 @@
+﻿@using MAWS.IntermediateData
+
+<div class="top-row pl-4 navbar navbar-dark" style="padding-top: initial;">
+    <a href="/"><img src="/css/images/mu_logo.png" width="65" height="63" alt="logo"></a>
+    <NavLink class="navbar-brand" href="/" Match="NavLinkMatch.All">
+        MAWS
+    </NavLink>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <ul class="nav flex-column">
+        <li class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <i class="fas fa-home fa-2x">&nbsp;&nbsp;</i>Home
+            </NavLink>
+        </li>
+
+        <AuthorizeView Roles=@ApplicationData.Administrator>
+            <Authorized>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="Upload">
+                        <i class="fas fa-upload fa-2x" aria-hidden="true">&nbsp;&nbsp;</i> Upload
+                    </NavLink>
+                </li>
+            </Authorized>
+        </AuthorizeView>
+
+
+        <AuthorizeView Roles=@ApplicationData.AdministratorOrContractsAdministratorOrHeadOfDisciplineOrUnitCoordinator>
+            <Authorized>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="Manage">
+                        <i class="fas fa-edit fa-2x" aria-hidden="true">&nbsp;&nbsp;</i> Manage
+                    </NavLink>
+                </li>
+            </Authorized>
+        </AuthorizeView>
+
+
+        <AuthorizeView Roles=@ApplicationData.AdministratorOrContractsAdministratorOrHeadOfDisciplineOrUnitCoordinatorOrAcademicStaff>
+            <Authorized>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="View">
+                        <i class="fas fa-binoculars fa-2x" aria-hidden="true">&nbsp;&nbsp;</i> View
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="Compare">
+                        <i class="fas fa-balance-scale fa-2x" aria-hidden="true">&nbsp;&nbsp;</i> Compare
+                    </NavLink>
+                </li>
+            </Authorized>
+        </AuthorizeView>
+    </ul>
+</div>
+
+@code {
+
+    
+
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+}
